@@ -87,31 +87,6 @@ def match_features(des1, des2, ratio_thresh):
     return good_matches
 
 
-def compute_homography(ori, dst):
-    """Estimate a projective homography using linear DLT.
-
-    Parameters:
-        ori: (N, 2) source points.
-        dst: (N, 2) destination points.
-
-    Returns:
-        np.ndarray: 3x3 homography mapping ori -> dst.
-    """
-    assert ori.shape[0] == dst.shape[0] and ori.shape[0] >= 4, "At least 4 correspondences are required."
-    A = []
-    for i in range(len(ori)):
-        x, y = ori[i]
-        xp, yp = dst[i]
-        A.append([-x, -y, -1, 0, 0, 0, x * xp, y * xp, xp])
-        A.append([0, 0, 0, -x, -y, -1, x * yp, y * yp, yp])
-    A = np.array(A, dtype=float)
-    _, _, Vt = np.linalg.svd(A)
-    h = Vt[-1, :]
-    h = h / h[-1]
-    H = h.reshape(3, 3)
-    return H
-
-
 def _normalize_points(pts):
     """Compute Hartley normalization for 2D points.
 
