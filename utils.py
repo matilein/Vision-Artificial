@@ -192,45 +192,6 @@ def ransac_homography(src_pts, dst_pts, num_iters=1000, threshold=3.0):
     final_H = compute_homography_normalized(src_pts[best_inliers_mask], dst_pts[best_inliers_mask])
     return final_H, best_inliers_mask
 
-
-def warp_images(img_anchor, img_left, img_right, H_left, H_right):
-    """Warp left and right images to the anchor frame and compose them on a common canvas.
-
-    Parameters:
-        img_anchor: Anchor BGR image.
-        img_left: Left BGR image.
-        img_right: Right BGR image.
-        H_left: 3x3 homography mapping left -> anchor.
-        H_right: 3x3 homography mapping right -> anchor.
-
-    Returns:
-        np.ndarray: Composed panorama image.
-    """
-    h, w = img_anchor.shape[:2]
-    corners_anchor = np.array([[0, 0], [w, 0], [w, h], [0, h]], dtype=np.float32).reshape(-1, 1, 2)
-    corners_left = np.array([[0, 0], [img_left.shape[1], 0], [img_left.shape[1], img_left.shape[0]], [0, img_left.shape[0]]], dtype=np.float32).reshape(-1, 1, 2)
-    corners_right = np.array([[0, 0], [img_right.shape[1], 0], [img_right.shape[1], img_right.shape[0]], [0, img_right.shape[0]]], dtype=np.float32).reshape(-1, 1, 2)
-
-    warped_corners_left = cv2.perspectiveTransform(corners_left, H_left)
-    warped_corners_right = cv2.perspectiveTransform(corners_right, H_right)
-    all_corners = np.vstack((corners_anchor, warped_corners_left, warped_corners_right))
-
-    min_x, min_y = np.int32(all_corners.min(axis=0).ravel() - 0.5)
-    max_x, max_y = np.int32(all_corners.max(axis=0).ravel() + 0.5)
-    trans_dist = [-min_x, -min_y]
-    output_size = (max_x - min_x, max_y - min_y)
-
-    translation_matrix = np.array([[1, 0, trans_dist[0]], [0, 1, trans_dist[1]], [0, 0, 1]], dtype=float)
-
-    result = cv2.warpPerspective(img_left, translation_matrix @ H_left, output_size)
-    result[trans_dist[1]:h + trans_dist[1], trans_dist[0]:w + trans_dist[0]] = img_anchor
-
-    result_right = cv2.warpPerspective(img_right, translation_matrix @ H_right, output_size)
-    mask = (result_right > 0)
-    result[mask] = result_right[mask]
-    return result
-
-
 def dmatches_from_H(kp1, kp2, H, max_err=3.0):
     """Synthesize cv2.DMatch objects from a homography for visualization.
 
